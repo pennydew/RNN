@@ -1,21 +1,52 @@
-from nltk import word_tokenize, pos_tag
-from nltk.tokenize import word_tokenize, TweetTokenizer
-from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.corpus import wordnet
+import string
+
+from nltk import pos_tag
 from nltk.corpus import stopwords
-
-import pandas as pd
-
-
-
+from nltk.corpus import wordnet
+from nltk.stem import SnowballStemmer
+from nltk.stem.wordnet import WordNetLemmatizer
+from nltk.tokenize import word_tokenize, TweetTokenizer
 
 lem = WordNetLemmatizer()
-tokenizer=TweetTokenizer()
+tokenizer = TweetTokenizer()
 
-data_train = pd.read_csv("resources/train.csv", low_memory=False)
-data_test = pd.read_csv("resources/test.csv", low_memory=False)
 
-merge = pd.concat([data_train, data_test])
-df = merge.reset_index(drop=True)
+def word_to_pos(tag):
+    if tag.startswith("R"):
+        return wordnet.ADV
+    elif tag.startswith("N"):
+        return wordnet.NOUN
+    elif tag.startswith("V"):
+        return wordnet.VERB
+    elif tag.startswith("J"):
+        return wordnet.ADJ
+    else:
+        return None
 
-merge["comment_text"]=merge["comment_text"].fillna("_na_").values
+
+def lemmatize(sentence):
+    res = []
+    lemmatizer = WordNetLemmatizer()
+    for word, pos in pos_tag(word_tokenize(sentence)):
+        wordnet_pos = word_to_pos(pos) or wordnet.NOUN
+        res.append(lemmatizer.lemmatize(word, pos=wordnet_pos))
+    return " ".join(res)
+
+def clean_text(sentence):
+    # remove punctuation
+    sentence = sentence.translate(string.punctuation)
+
+    # lower and remove stop words
+    sentence = sentence.lower().split()
+    stops = set(stopwords.words("english"))
+    sentence = [w for w in sentence if not w in stops]
+    sentence = " ".join(sentence)
+
+    # stem
+    sentence = sentence.split()
+    stemmer = SnowballStemmer("english")
+    sentence = " ".join([stemmer.stem(word) for word in sentence])
+
+    return sentence
+
+
